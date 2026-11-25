@@ -10,8 +10,8 @@ function z(n){return String(n).padStart(2,"0");}
 function today(){var d=new Date();return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());}
 function rid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function num(v){var x=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(x)?x:null;}
-function g(v){return v>=1000?(Math.round(v)).toLocaleString("en-CA")+" g":(v>=100?Math.round(v):Math.round(v*10)/10)+" g";}
-function money(v){return "$"+(Math.round(v*100)/100).toFixed(2);}
+function g(v){return v>=1000?(Math.round(v)).toLocaleString(window.PixoraCountry?PixoraCountry.locale():"en-CA")+" g":(v>=100?Math.round(v):Math.round(v*10)/10)+" g";}
+function money(v){return window.PixoraCountry?PixoraCountry.money(v,{dec:2}):"$"+(Math.round(v*100)/100).toFixed(2);}
 function byId(id){return S.formulas.filter(function(f){return f.id===id;})[0];}
 var tt=null;function toast(m){var t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true;},3500);}
 function save(){K.save(S);}
@@ -151,6 +151,7 @@ function logView(){
 }
 function settingsView(){
   var h='<button class="btn q s" data-act="tab" data-t="formulas" style="align-self:flex-start">← Back</button><h1>Settings</h1>';
+  if(window.PixoraCountry)h+=PixoraCountry.picker("Sets the currency for ingredient prices and how numbers and dates look.");
   h+='<section class="card"><h2>Temperatures</h2><div class="row"><label><input type="radio" name="tu" data-act="tu" value="C"'+(S.tempUnit==="C"?" checked":"")+'> °C</label><label><input type="radio" name="tu" data-act="tu" value="F"'+(S.tempUnit==="F"?" checked":"")+'> °F</label></div></section>';
   h+='<section class="card"><h2>Account</h2>'+(K.local?'<p class="small">On this phone only.</p><div class="row"><button class="btn" data-act="join">Sign in or create a Pixora account</button></div>':
     '<p class="small">Signed in as '+esc(K.email||"")+'. Your formulas are encrypted on this phone before they sync. Nobody else can read them, not even Pixora.</p><div class="row"><button class="btn q" data-act="signout">Sign out</button></div>')+'</section>';
@@ -269,7 +270,7 @@ document.addEventListener("click",function(e){
     var nf={id:rid(),name:"Converted recipe",kind:"other",pieces:1,pan:null,steps:"",notes:"Converted from cups; weigh and adjust.",fav:false,ing:rows.map(function(r){var role=B.guessRole(r.name),o={id:rid(),name:(r.name.charAt(0).toUpperCase()+r.name.slice(1)).slice(0,60),g:r.g,role:role};if(role==="starter")o.hyd=100;return o;})};
     S.formulas.push(nf);save();K.track("convert_save");tab="formulas";editDialog(nf);
   }
-  else if(a==="price"){var k=b.dataset.k||"";dlg('<h2>Ingredient price</h2><label class="f">Ingredient<input type="text" id="p-n" value="'+esc(k)+'" placeholder="Butter"></label><label class="f">Price per kg ($)<input type="text" inputmode="decimal" id="p-v" value="'+(k?S.prices[k]:"")+'"></label><p class="note">A 454 g block of butter at $6.99 is $15.40 per kg.</p><div class="row"><button class="btn p" data-act="saveprice" data-old="'+esc(k)+'">Save</button><button class="btn q" data-act="close">Cancel</button>'+(k?'<button class="btn d" data-act="delprice" data-k="'+esc(k)+'">Delete</button>':"")+'</div>');}
+  else if(a==="price"){var k=b.dataset.k||"";dlg('<h2>Ingredient price</h2><label class="f">Ingredient<input type="text" id="p-n" value="'+esc(k)+'" placeholder="Butter"></label><label class="f">Price per kg ('+(window.PixoraCountry?PixoraCountry.info().cur:"$")+')<input type="text" inputmode="decimal" id="p-v" value="'+(k?S.prices[k]:"")+'"></label><p class="note">'+(window.PixoraCountry&&PixoraCountry.get()==="IN"?"A 500 g pack of butter at ₹285 is ₹570 per kg.":"A 454 g block of butter at $6.99 is $15.40 per kg.")+'</p><div class="row"><button class="btn p" data-act="saveprice" data-old="'+esc(k)+'">Save</button><button class="btn q" data-act="close">Cancel</button>'+(k?'<button class="btn d" data-act="delprice" data-k="'+esc(k)+'">Delete</button>':"")+'</div>');}
   else if(a==="saveprice"){var nm=$("#p-n").value.trim().toLowerCase(),v=num($("#p-v").value);if(!nm||v==null){toast("Add a name and a price.");return;}if(b.dataset.old&&b.dataset.old!==nm)delete S.prices[b.dataset.old];S.prices[nm]=v;save();closeDlg();render();K.track("price_set");}
   else if(a==="delprice"){delete S.prices[b.dataset.k];save();closeDlg();render();}
   else if(a==="export")K.exportCopy();
